@@ -45,4 +45,3 @@ like to be able to print or send an HTML version of the same receipt. All the da
 and number formatting should be the same. However the layout should be HTML.
 You don't have to worry about the HTML template - a designer will care of that - but
 we do need a way to keep duplication between the reports to a bare minimum.
-
