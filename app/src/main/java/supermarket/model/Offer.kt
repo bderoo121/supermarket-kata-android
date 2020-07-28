@@ -2,6 +2,7 @@ package supermarket.model
 
 import java.lang.IllegalArgumentException
 import java.lang.IllegalStateException
+import kotlin.math.roundToInt
 
 sealed class Offer {
     abstract fun getDiscount(
@@ -53,7 +54,9 @@ class PercentageOffer(product: Product, private val percentOff: Double) : Single
         val quantityOf = shoppingCart.quantityOf(product) ?: return null
 
         val unitPrice = catalog.getUnitPrice(product)
-        return Discount("$percentOff% off (${product.name})", quantityOf * unitPrice * percentOff / 100.0)
+        val discountAmount = (quantityOf * unitPrice * percentOff / 100.0)
+        val roundedDiscount = (discountAmount * 100).roundToInt() / 100.0
+        return Discount("$percentOff% off (${product.name})", roundedDiscount)
     }
 }
 
@@ -90,7 +93,8 @@ class QuantityForAmountOffer(product: Product, private val discountQuantity: Int
         val unitPrice = catalog.getUnitPrice(product)
         val discounted = price * (quantityInt / discountQuantity) + (quantityInt % discountQuantity) * unitPrice
         val normal = quantityInt * unitPrice
-        return Discount("$discountQuantity for \$$price (${product.name})", normal - discounted)
+        val roundedDiscountAmount = ((normal - discounted) * 100).roundToInt() / 100.0
+        return Discount("$discountQuantity for \$$price (${product.name})", roundedDiscountAmount)
     }
 }
 
