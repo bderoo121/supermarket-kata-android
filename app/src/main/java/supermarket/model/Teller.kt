@@ -1,9 +1,9 @@
 package supermarket.model
 
 class Teller(private val catalog: SupermarketCatalog) {
-    private val offers = mutableListOf<SingleProductOffer>()
+    private val offers = mutableListOf<Offer>()
 
-    fun addSpecialOffer(offer: SingleProductOffer) {
+    fun addSpecialOffer(offer: Offer) {
         offers.add(offer)
     }
 

@@ -8,9 +8,8 @@ import java.util.*
 
 class ReceiptPrinter @JvmOverloads constructor(private val columns: Int = 40) {
 
-    private fun Discount.descriptionString() = "$description (${product.name})"
     private fun Discount.priceString() = priceAsString(-discountAmount)
-    private fun Discount.receiptLine() = getLRString(descriptionString(), priceString())
+    private fun Discount.receiptLine() = getLRString(description, priceString())
 
     fun printReceipt(receipt: Receipt): String {
         val result = StringBuilder()
