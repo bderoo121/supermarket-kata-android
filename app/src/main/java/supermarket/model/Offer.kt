@@ -2,6 +2,7 @@ package supermarket.model
 
 import java.lang.IllegalArgumentException
 import java.lang.IllegalStateException
+import kotlin.math.roundToInt
 
 sealed class Offer {
     abstract fun getDiscount(
@@ -21,8 +22,7 @@ class BundleOffer(
     private val description: String,
     private val products: List<Product>,
     private val discountPrice: Double
-) : Offer()
-{
+) : Offer() {
     init {
         if (products.isEmpty()) throw IllegalArgumentException("Must have some products in bundle")
     }
@@ -33,10 +33,8 @@ class BundleOffer(
             // The whole bundle was there, so return the discount
             val normalBundlePrice = products.sumByDouble { catalog.getUnitPrice(it) }
             val numberOfBundles = quantityOfBundleProducts.min()?.toInt() ?: throw IllegalStateException()
-            Discount(
-                "$description${multiplierStringOrEmpty(numberOfBundles)}",
-                (normalBundlePrice - discountPrice) * numberOfBundles
-            )
+            val discountAmount = ((normalBundlePrice - discountPrice) * numberOfBundles).roundForMoney()
+            Discount("$description${multiplierStringOrEmpty(numberOfBundles)}", discountAmount)
         } else {
             null
         }
@@ -53,7 +51,9 @@ class PercentageOffer(product: Product, private val percentOff: Double) : Single
         val quantityOf = shoppingCart.quantityOf(product) ?: return null
 
         val unitPrice = catalog.getUnitPrice(product)
-        return Discount("$percentOff% off (${product.name})", quantityOf * unitPrice * percentOff / 100.0)
+        val discountAmount = (quantityOf * unitPrice * percentOff / 100.0)
+        val roundedDiscount = discountAmount.roundForMoney()
+        return Discount("$percentOff% off (${product.name})", roundedDiscount)
     }
 }
 
@@ -63,6 +63,7 @@ class ThreeForTwoOffer(product: Product) : SingleProductOffer(product) {
             throw IllegalArgumentException("Can only use ThreeForTwo with discrete items")
         }
     }
+
     override fun getDiscount(
         shoppingCart: ShoppingCart,
         catalog: SupermarketCatalog
@@ -90,9 +91,12 @@ class QuantityForAmountOffer(product: Product, private val discountQuantity: Int
         val unitPrice = catalog.getUnitPrice(product)
         val discounted = price * (quantityInt / discountQuantity) + (quantityInt % discountQuantity) * unitPrice
         val normal = quantityInt * unitPrice
-        return Discount("$discountQuantity for \$$price (${product.name})", normal - discounted)
+        val roundedDiscountAmount = (normal - discounted).roundForMoney()
+        return Discount("$discountQuantity for \$$price (${product.name})", roundedDiscountAmount)
     }
 }
+
+private fun Double.roundForMoney(): Double = (this * 100).roundToInt() / 100.00
 
 fun main() {
     val apples = Product("apples", ProductUnit.Each)
