@@ -32,8 +32,7 @@ class ProductTest {
     }
 
     @After
-    fun tearDown() {
-        // No teardown necessary, but print receipt while we're at it.
+    fun printReceipt() {
         if (this::receipt.isInitialized) {
             println(ReceiptPrinter().printReceipt(receipt))
         }
@@ -112,8 +111,6 @@ class ProductTest {
             assertThat(description, containsString(oranges.name))
             assertThat(discountAmount, Is(3.00))
         }
-
-
     }
 
     @Test
