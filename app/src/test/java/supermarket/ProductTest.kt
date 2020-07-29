@@ -1,9 +1,9 @@
 package supermarket
 
+import junit.framework.Assert.assertTrue
 import org.hamcrest.CoreMatchers.containsString
 import org.hamcrest.MatcherAssert.assertThat
 import org.junit.After
-import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
 import supermarket.TestUtils.apples
@@ -24,7 +24,7 @@ class ProductTest {
     private val catalog = FakeCatalog()
     private val cart = ShoppingCart()
     private val teller = Teller(catalog)
-    private var receipt: Receipt? = null
+    private lateinit var receipt: Receipt
 
     @Before
     fun setup() {
@@ -34,8 +34,8 @@ class ProductTest {
     @After
     fun tearDown() {
         // No teardown necessary, but print receipt while we're at it.
-        receipt?.let {
-            println(ReceiptPrinter().printReceipt(receipt!!))
+        if (this::receipt.isInitialized) {
+            println(ReceiptPrinter().printReceipt(receipt))
         }
     }
 
@@ -44,9 +44,9 @@ class ProductTest {
         teller.addSpecialOffer(PercentageOffer(toothbrush, 10.0))
 
         receipt = teller.checksOutArticlesFrom(cart)
-        val discounts = receipt!!.getDiscounts()
+        val discounts = receipt.getDiscounts()
 
-        assertThat(discounts.size, Is(0))
+        assertTrue(discounts.isEmpty())
     }
 
     @Test
@@ -54,9 +54,9 @@ class ProductTest {
         cart.addItemQuantity(toothbrush, 25.0)
 
         receipt = teller.checksOutArticlesFrom(cart)
-        val discounts = receipt!!.getDiscounts()
+        val discounts = receipt.getDiscounts()
 
-        assertThat(discounts.size, Is(0))
+        assertTrue(discounts.isEmpty())
     }
 
     @Test
@@ -67,10 +67,10 @@ class ProductTest {
         teller.addSpecialOffer(ThreeForTwoOffer(toothbrush))
 
         receipt = teller.checksOutArticlesFrom(cart)
-        val discounts = receipt!!.getDiscounts()
+        val discounts = receipt.getDiscounts()
 
         assertThat(discounts.size, Is(1))
-        assertThat(discounts[0].description, containsString("oranges"))
+        assertThat(discounts[0].description, containsString(oranges.name))
     }
 
     @Test
@@ -81,13 +81,17 @@ class ProductTest {
         teller.addSpecialOffer(QuantityForAmountOffer(oranges, 4, 5.0))
 
         receipt = teller.checksOutArticlesFrom(cart)
-        val discounts = receipt!!.getDiscounts()
+        val discounts = receipt.getDiscounts()
 
         assertThat(discounts.size, Is(2))
-        assertThat(discounts[0].description, containsString("apples"))
-        assertThat(discounts[0].discountAmount, Is(0.60))
-        assertThat(discounts[1].description, containsString("oranges"))
-        assertThat(discounts[1].discountAmount, Is(3.00))
+        discounts[0].run {
+            assertThat(description, containsString(apples.name))
+            assertThat(discountAmount, Is(0.60))
+        }
+        discounts[1].run {
+            assertThat(description, containsString(oranges.name))
+            assertThat(discountAmount, Is(3.00))
+        }
     }
 
     @Test
@@ -97,13 +101,19 @@ class ProductTest {
         teller.addSpecialOffer(QuantityForAmountOffer(oranges, 4, 5.0))
 
         receipt = teller.checksOutArticlesFrom(cart)
-        val discounts = receipt!!.getDiscounts()
+        val discounts = receipt.getDiscounts()
 
         assertThat(discounts.size, Is(2))
-        assertThat(discounts[0].description, containsString("oranges"))
-        assertThat(discounts[0].discountAmount, Is(1.00))
-        assertThat(discounts[1].description, containsString("oranges"))
-        assertThat(discounts[1].discountAmount, Is(3.00))
+        discounts[0].run {
+            assertThat(description, containsString(oranges.name))
+            assertThat(discountAmount, Is(1.00))
+        }
+        discounts[1].run {
+            assertThat(description, containsString(oranges.name))
+            assertThat(discountAmount, Is(3.00))
+        }
+
+
     }
 
     @Test
@@ -113,7 +123,7 @@ class ProductTest {
         teller.addSpecialOffer(BundleOffer("Dental bundle", listOf(toothbrush, toothpaste), 3.00))
 
         receipt = teller.checksOutArticlesFrom(cart)
-        val discounts = receipt!!.getDiscounts()
+        val discounts = receipt.getDiscounts()
 
         assertThat(discounts.size, Is(1))
         assertThat(discounts[0].discountAmount, Is(1.41))
@@ -124,33 +134,36 @@ class ProductTest {
         cart.addItemQuantity(toothbrush, 1.0)
         cart.addItemQuantity(toothpaste, 1.0)
 
-        teller.addSpecialOffer(BundleOffer("Dental bundle", listOf(toothbrush, toothpaste, oranges), 3.00))
+        teller.addSpecialOffer(BundleOffer("Oral masochist bundle", listOf(toothbrush, toothpaste, oranges), 3.00))
         receipt = teller.checksOutArticlesFrom(cart)
-        val discounts = receipt!!.getDiscounts()
+        val discounts = receipt.getDiscounts()
 
-        assertThat(discounts.size, Is(0))
+        assertTrue(discounts.isEmpty())
     }
 
     @Test
     fun `Bundle offer applied multiple times`() {
         cart.addItemQuantity(toothbrush, 3.0)
         cart.addItemQuantity(toothpaste, 2.0)
-
         teller.addSpecialOffer(BundleOffer("Dental bundle", listOf(toothbrush, toothpaste), 3.00))
+
         receipt = teller.checksOutArticlesFrom(cart)
-        val discounts = receipt!!.getDiscounts()
+        val discounts = receipt.getDiscounts()
 
         assertThat(discounts.size, Is(1))
-        assertThat(discounts[0].description, containsString("x2"))
-        assertThat(discounts[0].discountAmount, Is(2.82))
+        discounts[0].run {
+            assertThat(description, containsString("x2"))
+            assertThat(discountAmount, Is(2.82))
+        }
     }
 
     @Test
     fun `Half off discount`() {
         cart.addItemQuantity(apples, 2.0)
         teller.addSpecialOffer(PercentageOffer(apples, 50.0))
+
         receipt = teller.checksOutArticlesFrom(cart)
-        val discounts = receipt!!.getDiscounts()
+        val discounts = receipt.getDiscounts()
 
         assertThat(discounts[0].discountAmount, Is(1.99))
     }
@@ -161,7 +174,7 @@ class ProductTest {
         teller.addSpecialOffer(PercentageOffer(oranges, 25.0))
 
         receipt = teller.checksOutArticlesFrom(cart)
-        val discounts = receipt!!.getDiscounts()
+        val discounts = receipt.getDiscounts()
 
         assertThat(discounts[0].discountAmount, Is(1.00))
     }
@@ -172,7 +185,7 @@ class ProductTest {
         teller.addSpecialOffer(PercentageOffer(toothbrush, 10.0))
 
         receipt = teller.checksOutArticlesFrom(cart)
-        val discounts = receipt!!.getDiscounts()
+        val discounts = receipt.getDiscounts()
 
         assertThat(discounts[0].discountAmount, Is(0.10))
     }
@@ -183,7 +196,7 @@ class ProductTest {
         teller.addSpecialOffer(PercentageOffer(flour, 50.0))
 
         receipt = teller.checksOutArticlesFrom(cart)
-        val discounts = receipt!!.getDiscounts()
+        val discounts = receipt.getDiscounts()
 
         assertThat(discounts[0].discountAmount, Is(3.13))
     }
@@ -194,7 +207,7 @@ class ProductTest {
         teller.addSpecialOffer(ThreeForTwoOffer(apples))
 
         receipt = teller.checksOutArticlesFrom(cart)
-        val discounts = receipt!!.getDiscounts()
+        val discounts = receipt.getDiscounts()
 
         assertThat(discounts[0].discountAmount, Is(1.99))
     }
@@ -203,8 +216,10 @@ class ProductTest {
     fun `Three for two with extra product`() {
         cart.addItemQuantity(toothbrush, 4.0)
         teller.addSpecialOffer(ThreeForTwoOffer(toothbrush))
+
         receipt = teller.checksOutArticlesFrom(cart)
-        val discounts = receipt!!.getDiscounts()
+        val discounts = receipt.getDiscounts()
+
         assertThat(discounts.size, Is(1))
         assertThat(discounts[0].discountAmount, Is(0.99))
     }
@@ -215,9 +230,9 @@ class ProductTest {
         teller.addSpecialOffer(ThreeForTwoOffer(apples))
 
         receipt = teller.checksOutArticlesFrom(cart)
-        val discounts = receipt!!.getDiscounts()
+        val discounts = receipt.getDiscounts()
 
-        assertThat(discounts.size, Is(0))
+        assertTrue(discounts.isEmpty())
     }
 
     @Test
@@ -226,11 +241,13 @@ class ProductTest {
         teller.addSpecialOffer(ThreeForTwoOffer(apples))
 
         receipt = teller.checksOutArticlesFrom(cart)
-        val discounts = receipt!!.getDiscounts()
+        val discounts = receipt.getDiscounts()
 
         assertThat(discounts.size, Is(1))
-        assertThat(discounts[0].description, containsString("x2"))
-        assertThat(discounts[0].discountAmount, Is(3.98))
+        discounts[0].run {
+            assertThat(description, containsString("x2"))
+            assertThat(discountAmount, Is(3.98))
+        }
     }
 
     @Test
@@ -240,19 +257,14 @@ class ProductTest {
         teller.addSpecialOffer(ThreeForTwoOffer(oranges))
 
         receipt = teller.checksOutArticlesFrom(cart)
-        val discounts = receipt!!.getDiscounts()
+        val discounts = receipt.getDiscounts()
 
         assertThat(discounts[0].discountAmount, Is(2.00))
     }
 
-    @Test
+    @Test(expected = IllegalArgumentException::class)
     fun `Three for two offer invalid for products using kilos`() {
-        try {
-            teller.addSpecialOffer(ThreeForTwoOffer(flour))
-            fail()
-        } catch (e: IllegalArgumentException) {
-            // Hooray for exceptions!
-        }
+        teller.addSpecialOffer(ThreeForTwoOffer(flour))
     }
 
     @Test
@@ -261,7 +273,7 @@ class ProductTest {
         teller.addSpecialOffer(QuantityForAmountOffer(toothbrush, 5, 3.00))
 
         receipt = teller.checksOutArticlesFrom(cart)
-        val discounts = receipt!!.getDiscounts()
+        val discounts = receipt.getDiscounts()
 
         assertThat(discounts[0].discountAmount, Is(1.95))
     }
@@ -272,9 +284,9 @@ class ProductTest {
         teller.addSpecialOffer(QuantityForAmountOffer(toothbrush, 6, 3.00))
 
         receipt = teller.checksOutArticlesFrom(cart)
-        val discounts = receipt!!.getDiscounts()
+        val discounts = receipt.getDiscounts()
 
-        assertThat(discounts.size, Is(0))
+        assertTrue(discounts.isEmpty())
     }
 
     @Test
@@ -283,7 +295,7 @@ class ProductTest {
         teller.addSpecialOffer(QuantityForAmountOffer(toothbrush, 2, 1.62))
 
         receipt = teller.checksOutArticlesFrom(cart)
-        val discounts = receipt!!.getDiscounts()
+        val discounts = receipt.getDiscounts()
 
         assertThat(discounts.size, Is(1))
         assertThat(discounts[0].discountAmount, Is(0.72))
@@ -296,7 +308,7 @@ class ProductTest {
         teller.addSpecialOffer(QuantityForAmountOffer(oranges, 4, 6.00))
 
         receipt = teller.checksOutArticlesFrom(cart)
-        val discounts = receipt!!.getDiscounts()
+        val discounts = receipt.getDiscounts()
 
         assertThat(discounts[0].discountAmount, Is(2.00))
     }

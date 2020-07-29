@@ -34,9 +34,7 @@ class BundleOffer(
             val normalBundlePrice = products.sumByDouble { catalog.getUnitPrice(it) }
             val numberOfBundles = quantityOfBundleProducts.min()?.toInt() ?: throw IllegalStateException()
             val discountAmount = ((normalBundlePrice - discountPrice) * numberOfBundles).roundForMoney()
-            Discount(
-                "$description${multiplierStringOrEmpty(numberOfBundles)}", discountAmount
-            )
+            Discount("$description${multiplierStringOrEmpty(numberOfBundles)}", discountAmount)
         } else {
             null
         }
